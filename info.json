@@ -1,0 +1,9 @@
+{
+  "name": "WePlayObservationBuggy",
+  "version": "0.1.0",
+  "title": "WePlay: Observation Buggy",
+  "author": "afewvowels",
+  "factorio_version": "2.1",
+  "description": "A spherical observation car with a radar dish and a panoramic window. The buggy charts the map around it as you drive, like a radar on wheels, and has a 4x4 equipment grid powered by a built-in 1 MW alternator. Unlocked with Automobilism.",
+  "dependencies": ["base >= 2.1"]
+}

@@ -1,0 +1,9 @@
+---------------------------------------------------------------------------------------------------
+Version: 0.1.0
+Date: 2026-11-07
+  Features:
+    - Observation buggy: a spherical scout car with 64-direction sprites.
+    - Charts the map around itself like a radar on wheels (radius and interval in mod settings).
+    - Unlocked with Automobilism.
+    - Paint takes on the player colour, like vanilla vehicles.
+    - 4x4 equipment grid, powered by a hidden built-in 1 MW alternator (all 16 cells free).
