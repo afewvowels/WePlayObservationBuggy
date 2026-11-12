@@ -57,9 +57,36 @@ buggy.light_animation = nil
 buggy.water_reflection = nil
 buggy.guns = nil
 
--- The vanilla dust spawns at the car's wheel positions, which sit under this
--- much bigger body and draw on top of it.
-buggy.track_particle_triggers = nil
+-- Wheel dust: see data-final-fixes.lua.
+
+-- Exhaust smoke: the vanilla car puffs it out just behind its own small body.
+-- Smoke draws above everything, so when the buggy faces away from the camera
+-- it lands on top of the sphere. Dropped.
+if buggy.energy_source then buggy.energy_source.smoke = nil end
+
+-- Sounds --------------------------------------------------------------------
+local SFX = "__WePlayObservationBuggy__/sounds/"
+
+buggy.working_sound = {
+  sound            = {filename = SFX .. "wp-observation-buggy-engine-loop.ogg",  volume = 0.3},
+  activate_sound   = {filename = SFX .. "wp-observation-buggy-engine-start.ogg", volume = 0.35},
+  deactivate_sound = {filename = SFX .. "wp-observation-buggy-engine-stop.ogg",  volume = 0.35},
+  match_speed_to_activity = true
+}
+buggy.open_sound  = {filename = SFX .. "wp-observation-buggy-hatch-open.ogg",  volume = 0.9}
+buggy.close_sound = {filename = SFX .. "wp-observation-buggy-hatch-close.ogg", volume = 0.9}
+buggy.stop_trigger = {{
+  type = "play-sound",
+  sound = {{filename = SFX .. "wp-observation-buggy-brake.ogg", volume = 0.45}}
+}}
+
+-- Radar ping, played to occupants from control.lua.
+local ping = {
+  type = "sound",
+  name = NAME .. "-ping",
+  filename = SFX .. "wp-observation-buggy-ping.ogg",
+  volume = 0.5
+}
 
 -- About 3.7 tiles wheel to wheel. Kept a bit smaller than the sprite so it
 -- doesn't snag on every tree.
@@ -105,7 +132,7 @@ local grid = {
   equipment_categories = {"armor"}
 }
 
-data:extend({buggy, item, recipe, grid})
+data:extend({buggy, item, recipe, grid, ping})
 
 -- Unlock alongside the car.
 local tech = data.raw["technology"]["automobilism"]

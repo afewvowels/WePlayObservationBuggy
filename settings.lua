@@ -16,5 +16,14 @@ data:extend({
     minimum_value = 10,
     maximum_value = 600,
     order = "b"
+  },
+  {
+    type = "int-setting",
+    name = "wp-observation-buggy-ping-seconds",
+    setting_type = "runtime-per-user",
+    default_value = 5,
+    minimum_value = 0,
+    maximum_value = 60,
+    order = "c"
   }
 })

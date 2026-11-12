@@ -7,6 +7,7 @@ local POWER_INTERVAL = 10  -- ticks between top-ups
 -- storage.buggies[registration_number] = entity
 local function init_storage()
   storage.buggies = storage.buggies or {}
+  storage.last_ping = storage.last_ping or {}
 end
 
 local function track(entity)
@@ -25,6 +26,28 @@ local function rescan()
   end
 end
 
+-- Radar ping ---------------------------------------------------------------
+-- Plays to whoever is inside, at most once per their own ping setting
+-- (0 = off). Only ever runs on a chart tick, so it stays in step with the map.
+local PING = NAME .. "-ping"
+
+local function ping(entity)
+  for _, occupant in pairs({entity.get_driver(), entity.get_passenger()}) do
+    local player = occupant.object_name == "LuaPlayer" and occupant or occupant.player
+    if player and player.valid then
+      local secs = player.mod_settings["wp-observation-buggy-ping-seconds"].value
+      if secs > 0 then
+        storage.last_ping = storage.last_ping or {}
+        local last = storage.last_ping[player.index]
+        if not last or game.tick - last >= secs * 60 then
+          player.play_sound({path = PING})
+          storage.last_ping[player.index] = game.tick
+        end
+      end
+    end
+  end
+end
+
 -- Radar on wheels ----------------------------------------------------------
 local function chart_all()
   local r = settings.global["wp-observation-buggy-chart-radius"].value
@@ -35,6 +58,7 @@ local function chart_all()
         local p = entity.position
         force.chart(entity.surface, {{p.x - r, p.y - r}, {p.x + r, p.y + r}})
       end
+      ping(entity)
     else
       storage.buggies[id] = nil
     end
@@ -112,8 +136,24 @@ end)
 
 -- Tracking -------------------------------------------------------------------
 local filter = {{filter = "name", name = NAME}}
+-- Paint the buggy in the colour of the player who placed it. For robot or
+-- script builds, fall back to whoever last touched it, if anyone.
+local function paint(entity, player_index)
+  local player = player_index and game.get_player(player_index)
+  if not player then
+    local last = entity.last_user
+    if last and last.object_name == "LuaPlayer" then player = last end
+  end
+  if player and player.valid then
+    entity.color = player.color
+  end
+end
+
 local function on_built(event)
-  track(event.entity)
+  local entity = event.entity
+  if not (entity and entity.valid and entity.name == NAME) then return end
+  track(entity)
+  paint(entity, event.player_index)
 end
 
 script.on_event(defines.events.on_built_entity, on_built, filter)

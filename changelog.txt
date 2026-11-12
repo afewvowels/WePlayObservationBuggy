@@ -1,4 +1,19 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.2
+Date: 2026-11-12
+  Features:
+    - Custom sounds: engine start, running loop and shutdown, hatch open and close, and brake screech.
+    - Radar ping plays to the driver and passenger as the buggy charts. Per-player setting: seconds between pings, 0 = off.
+  Changes:
+    - Wheel dust is back, coming from the buggy's own rear wheels instead of under the body. Each ground type keeps its own dust colour.
+    - Ground the car has no dust for (modded tiles such as Alien Biomes', paved floors) now gets light tan dust.
+    - Removed the exhaust smoke. It came from the middle of the body and drew over the sphere.
+---------------------------------------------------------------------------------------------------
+Version: 0.1.1
+Date: 2026-11-08
+  Changes:
+    - The buggy's paint is set to the placing player's colour when it is built.
+---------------------------------------------------------------------------------------------------
 Version: 0.1.0
 Date: 2026-11-07
   Features:

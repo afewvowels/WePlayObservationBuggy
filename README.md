@@ -5,7 +5,7 @@ A Factorio 2.1 mod that adds the **Observation buggy**: a spherical scout car wi
 ![thumbnail](thumbnail.png)
 
 - **Mod name:** `WePlayObservationBuggy`
-- **Current version:** 0.1.1
+- **Current version:** 0.1.2
 - **Factorio:** 2.1 (`base >= 2.1`, no other dependencies)
 - **Author:** afewvowels
 
@@ -20,7 +20,10 @@ A Factorio 2.1 mod that adds the **Observation buggy**: a spherical scout car wi
 | **Built-in alternator** | A hidden 1 MW power source fills the grid, so you don't need to spend cells on generators. All 16 cells are free. |
 | **Player colour** | The paint takes the colour of the player who built the buggy. |
 | **Custom art** | Rendered 3D model with 64 rotation directions, a player-colour mask layer and a separate shadow sheet. |
-| **Tougher than a car** | 600 HP and a 40-slot trunk. It drives like the vanilla car because it uses the car's physics and sounds. |
+| **Custom sounds** | Its own engine start, running loop and shutdown, hatch open and close, and brake screech. |
+| **Radar ping** | A soft sonar ping plays to the driver and passenger as the buggy charts. Each player picks how often, or turns it off. |
+| **Wheel dust** | Kicks up dust from its rear wheels, matched to the ground: vanilla dust on vanilla tiles, Alien Biomes' own dust on its tiles, and light tan dust anywhere else. |
+| **Tougher than a car** | 600 HP and a 40-slot trunk. It drives like the vanilla car because it uses the car's physics. |
 
 ### Unlock and recipe
 
@@ -35,14 +38,15 @@ Unlocked by **Automobilism**, alongside the vanilla car.
 
 Crafting time: 3 s.
 
-### Mod settings (runtime, map-wide)
+### Mod settings
 
 | Setting | Default | Range | What it does |
 |---|---|---|---|
 | Chart radius | 128 tiles | 32–512 | Half-width of the square charted around each buggy. |
 | Chart interval | 60 ticks (1 s) | 10–600 | How often each buggy re-charts its area. |
+| Radar ping *(per player)* | 5 s | 0–60 | Seconds between radar pings while you're riding in a buggy. 0 turns it off. |
 
-Both settings can be changed mid-game, and the new values take effect right away.
+Chart radius and interval are map-wide; the ping is set by each player. All three can be changed mid-game and take effect right away.
 
 ---
 
@@ -63,10 +67,12 @@ WePlayObservationBuggy/
 ├── info.json                 Mod metadata (name, version, Factorio version, deps)
 ├── changelog.txt             In-game changelog
 ├── thumbnail.png             144×144 mod portal thumbnail
-├── settings.lua              Settings stage: chart radius & interval
-├── data.lua                  Data stage: entity, item, recipe, grid, tech unlock
-├── control.lua               Runtime: charting, alternator, tracking, painting
+├── settings.lua              Settings stage: chart radius, interval, radar ping
+├── data.lua                  Data stage: entity, item, recipe, grid, sounds, tech unlock
+├── data-final-fixes.lua      Last data pass: wheel dust
+├── control.lua               Runtime: charting, ping, alternator, tracking, painting
 ├── locale/en/locale.cfg      English names and descriptions
+├── sounds/                   Engine, hatch, brake and radar ping (mono OGG)
 └── graphics/
     ├── wp-observation-buggy.png         Body sheet   (2688×2912, 64 dirs)
     ├── wp-observation-buggy-mask.png    Paint mask   (2688×2912, 64 dirs)
@@ -78,25 +84,27 @@ WePlayObservationBuggy/
 
 ## How it works
 
-Factorio mods load in stages. This one uses three of them:
+Factorio mods load in stages. This one uses four of them:
 
-1. **Settings stage** (`settings.lua`) declares the two runtime-global settings.
-2. **Data stage** (`data.lua`) defines prototypes: the entity, the item, the recipe and the equipment grid.
-3. **Control stage** (`control.lua`) runs during play. It handles the charting, the alternator, tracking which buggies exist and painting them.
+1. **Settings stage** (`settings.lua`) declares the mod settings.
+2. **Data stage** (`data.lua`) defines prototypes: the entity, the item, the recipe, the equipment grid and the sounds.
+3. **Final fixes** (`data-final-fixes.lua`) sets up the wheel dust, after every other mod has loaded.
+4. **Control stage** (`control.lua`) runs during play. It handles the charting, the radar ping, the alternator, tracking which buggies exist and painting them.
 
 ### `data.lua`: prototypes
 
 #### Entity
 
-The buggy starts as a `table.deepcopy` of the vanilla `car`, so it keeps the car's physics, engine sounds, damage effects, consumption and fuel handling. The script then changes:
+The buggy starts as a `table.deepcopy` of the vanilla `car`, so it keeps the car's physics, collision and explosion sounds, damage effects, consumption and fuel handling. The script then changes:
 
 - **Animation.** Replaced with three layers that share the same 64-direction, 8-per-row layout:
   - `body`: the rendered model.
   - `mask`: a grayscale paint layer with `apply_runtime_tint = true`. The engine tints it with the entity's colour.
   - `shadow`: drawn with `draw_as_shadow = true` and offset to match the light direction.
 
-  The sheets use `scale = 0.5` (rendered at 128 px per tile, displayed at 64). The frame size and `shift` values come from the sprite packing script.
-- **Removed fields.** `turret_animation`, `light_animation`, `water_reflection` and `guns` are set to `nil` because they point at vanilla car art or functions the buggy doesn't use. `track_particle_triggers` is removed as well: the vanilla dust spawns at the car's wheel positions, which sit under this much larger body and would draw on top of it.
+  The sheets use `scale = 0.5`, so 64 sheet pixels make one tile. The frame size and `shift` values come from the sprite packing script.
+- **Removed fields.** `turret_animation`, `light_animation`, `water_reflection` and `guns` are set to `nil` because they point at vanilla car art or functions the buggy doesn't use. The exhaust smoke (`energy_source.smoke`) is removed too. The car puffs it out just behind its own small body, which is the middle of the buggy's sphere, and smoke draws above entities, so it landed on the body.
+- **Sounds.** `working_sound` gets the custom engine start (`activate_sound`), loop (`sound`, with `match_speed_to_activity` so its pitch rises with speed) and shutdown (`deactivate_sound`). `open_sound` and `close_sound` get the hatch, and `stop_trigger` plays the brake screech. A separate `sound` prototype, `wp-observation-buggy-ping`, is the radar ping played from `control.lua`.
 - **Collision and selection.** The collision box is 2.6×2.6 tiles, a little smaller than the sprite so it doesn't snag on every tree. The selection box is 3.4×3.4. `drawing_box_vertical_extension = 2.5` stops the tall sprite from being culled early at the top of the screen.
 - **Stats.** 600 max health, 40 inventory slots, and an `equipment_grid` pointing at the custom grid.
 
@@ -105,6 +113,19 @@ The buggy starts as a `table.deepcopy` of the vanilla `car`, so it keeps the car
 - The **item** is a deepcopy of the vanilla car's `item-with-entity-data`, so the buggy keeps its fuel, trunk and grid contents when you pick it up. Its `order` places it right after the car in the crafting menu.
 - The **recipe** starts disabled and is added to the `automobilism` technology's unlock effects. The script checks that the tech exists before modifying it.
 - The **equipment grid** is 4×4 and accepts the `armor` equipment category, so any equipment that fits in power armor also fits here.
+
+### `data-final-fixes.lua`: wheel dust
+
+The vanilla car's `track_particle_triggers` is a list of entries, one per group of tiles, each with the particles to spawn there. Their `offsets` sit at the car's wheels, which are under the buggy's sphere, so the dust spawned in the middle of the body.
+
+This runs in final fixes so it sees the car after every other mod has changed it. Alien Biomes, for example, adds dust entries for its own tiles:
+
+1. **Copy the car's dust.** The buggy gets a fresh copy of `data.raw.car.car.track_particle_triggers`, including any entries other mods added.
+2. **Add a default.** The car only makes dust on the tiles it lists. If no entry has `use_as_default`, one is added that covers every other tile with plain light sand dust and grit. Its `tiles` holds `out-of-map` as a placeholder, since that tile can't be driven on.
+3. **Replace tile tinting.** Any effect using `apply_tile_tint` gets a fixed light tan `tint` instead. Dust tinted to the tile matched the ground so closely that it disappeared.
+4. **Move to the wheels.** Every particle effect's `offsets` is set to the strut-mounted wheel pair, `{±1.55, 1.0}`, measured from the sprite. `rotate_offsets` turns them with the buggy. The other wheel pair sits behind the sphere, where dust would draw over the body, so it isn't used.
+
+Each tile keeps its own particles, so sand still throws sand and Alien Biomes ground throws Alien Biomes' dust. Only the spawn position changes, plus the colour of tile-tinted dust.
 
 ### `control.lua`: runtime
 
@@ -127,7 +148,18 @@ force.chart(surface, {{x - r, y - r}, {x + r, y + r}})
 
 `r` is the chart radius setting. This charts the full square around the buggy at once, rather than sweeping it like a vanilla radar. The area stays revealed after the buggy leaves. While the buggy stays in place, the area is re-charted every interval, which effectively gives you live map vision of it.
 
+After charting, `ping()` runs for that buggy (see below), so pings stay in step with the charting.
+
 The cost grows with radius² × number of buggies ÷ interval. The defaults (128 tiles, once per second) are light. A 512-tile radius at a 10-tick interval with many buggies is noticeably heavier.
+
+#### Radar ping: `ping()` *(0.1.2)*
+
+For each buggy that charts, the driver and passenger (`get_driver()`, `get_passenger()`) are looked up. Each one is either a player or a character with a player. For each player:
+
+- Their `wp-observation-buggy-ping-seconds` setting is read. If it's 0, nothing plays.
+- `storage.last_ping[player.index]` holds the tick of their last ping. If at least that many seconds have passed, `player.play_sound` plays the ping to that player only, and the tick is updated.
+
+The check only happens on chart ticks, so the effective gap is the setting rounded up to the next chart. With the defaults that's every 5 s exactly.
 
 #### Hidden alternator: `power_all()`
 
@@ -170,12 +202,29 @@ When a buggy is built, its `color` is set to the builder's player colour, and th
 
 - **Other mods that change `automobilism`** are fine; the unlock is appended to the existing effects list.
 - **Other mods that change the vanilla car prototype** before this one loads will have their changes copied into the buggy, because it's a deepcopy taken during the data stage. Usually that's what you want. If it causes problems, add an optional dependency to change the load order.
+- **Alien Biomes** and other tile mods: dust entries they add to the vanilla car are picked up automatically, and any other ground gets light tan dust.
 - **Space Age / multiple surfaces.** Charting uses the buggy's own surface and force, so it works on any planet the car can drive on.
 - **Multiplayer.** All state lives in `storage` and every handler is deterministic, so the mod is safe for multiplayer.
 
 ---
 
 ## Development
+
+### Sounds
+
+All sounds are mono OGG Vorbis in `sounds/`, cut from source recordings:
+
+| File | Use | Notes |
+|---|---|---|
+| `wp-observation-buggy-engine-start.ogg` | engine start | 1.8 s: starter crank and catch, fading into idle |
+| `wp-observation-buggy-engine-loop.ogg` | engine loop | ~2 s seamless loop: exactly 128 firing cycles, crossfaded at the seam |
+| `wp-observation-buggy-engine-stop.ogg` | engine stop | 2.3 s: 0.6 s of the loop crossfaded into the shutdown, so the loop runs straight into it |
+| `wp-observation-buggy-hatch-open.ogg` | getting in | 1.0 s |
+| `wp-observation-buggy-hatch-close.ogg` | getting out | 0.75 s, keeps the creak before the latch |
+| `wp-observation-buggy-brake.ogg` | brake (`stop_trigger`) | 0.94 s |
+| `wp-observation-buggy-ping.ogg` | radar ping | 0.85 s, the tail faded out early |
+
+Volumes are set in `data.lua`: engine loop 0.3, start and stop 0.35, hatch 0.9, brake 0.45, ping 0.5.
 
 ### Art pipeline
 
@@ -188,7 +237,7 @@ The three sheets must use identical frame order and direction count (64). The bo
 Factorio expects a zip containing one folder named `<name>_<version>` or just `<name>`, with `info.json` inside:
 
 ```
-WePlayObservationBuggy_0.1.1.zip
+WePlayObservationBuggy_0.1.2.zip
 └── WePlayObservationBuggy/
     ├── info.json
     └── ...
@@ -199,6 +248,12 @@ For each release, bump `version` in `info.json` and add an entry at the top of `
 ---
 
 ## Changelog
+
+**0.1.2** (2026-11-12)
+- Custom sounds: engine start, running loop and shutdown, hatch open and close, and brake screech.
+- Radar ping plays to the driver and passenger as the buggy charts. Per-player setting: seconds between pings, 0 = off.
+- Wheel dust comes from the buggy's own rear wheels, matched to the ground. Ground with no dust of its own gets light tan dust.
+- Removed the exhaust smoke, which drew over the body.
 
 **0.1.1** (2026-11-08)
 - The buggy's paint is set to the colour of the player who placed it.
