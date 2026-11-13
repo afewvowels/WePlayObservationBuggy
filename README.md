@@ -5,7 +5,7 @@ A Factorio 2.1 mod that adds the **Observation buggy**: a spherical scout car wi
 ![thumbnail](thumbnail.png)
 
 - **Mod name:** `WePlayObservationBuggy`
-- **Current version:** 0.1.2
+- **Current version:** 0.1.3
 - **Factorio:** 2.1 (`base >= 2.1`, no other dependencies)
 - **Author:** afewvowels
 
@@ -15,15 +15,16 @@ A Factorio 2.1 mod that adds the **Observation buggy**: a spherical scout car wi
 
 | | |
 |---|---|
-| **Radar on wheels** | Reveals and refreshes a square of map around the buggy on a fixed timer, whether or not anyone is driving it. The radius and interval are both mod settings. |
+| **Radar on wheels** | Reveals and refreshes a square of map around the buggy on a fixed timer while someone is driving or riding in it. The radius and interval are both mod settings. |
 | **Equipment grid** | 4×4 grid that takes normal armor equipment (shields, personal lasers, roboports, batteries, exoskeletons, night vision, and so on). |
-| **Built-in alternator** | A hidden 1 MW power source fills the grid, so you don't need to spend cells on generators. All 16 cells are free. |
+| **Built-in alternator** | A hidden 1 MW power source fills the grid while the buggy is occupied, so you don't need to spend cells on generators. All 16 cells are free. |
 | **Player colour** | The paint takes the colour of the player who built the buggy. |
 | **Custom art** | Rendered 3D model with 64 rotation directions, a player-colour mask layer and a separate shadow sheet. |
 | **Custom sounds** | Its own engine start, running loop and shutdown, hatch open and close, and brake screech. |
 | **Radar ping** | A soft sonar ping plays to the driver and passenger as the buggy charts. Each player picks how often, or turns it off. |
 | **Wheel dust** | Kicks up dust from its rear wheels, matched to the ground: vanilla dust on vanilla tiles, Alien Biomes' own dust on its tiles, and light tan dust anywhere else. |
-| **Tougher than a car** | 600 HP and a 40-slot trunk. It drives like the vanilla car because it uses the car's physics. |
+| **Tougher than a car** | 600 HP and a 40-slot trunk. It uses the car's physics. |
+| **Slower than a car** | 80% of the car's top speed, and lighter on fuel. It's an explorer, not a race car. |
 
 ### Unlock and recipe
 
@@ -107,6 +108,7 @@ The buggy starts as a `table.deepcopy` of the vanilla `car`, so it keeps the car
 - **Sounds.** `working_sound` gets the custom engine start (`activate_sound`), loop (`sound`, with `match_speed_to_activity` so its pitch rises with speed) and shutdown (`deactivate_sound`). `open_sound` and `close_sound` get the hatch, and `stop_trigger` plays the brake screech. A separate `sound` prototype, `wp-observation-buggy-ping`, is the radar ping played from `control.lua`.
 - **Collision and selection.** The collision box is 2.6×2.6 tiles, a little smaller than the sprite so it doesn't snag on every tree. The selection box is 3.4×3.4. `drawing_box_vertical_extension = 2.5` stops the tall sprite from being culled early at the top of the screen.
 - **Stats.** 600 max health, 40 inventory slots, and an `equipment_grid` pointing at the custom grid.
+- **Top speed** *(0.1.3)*. Cars have no top speed field. Top speed comes from engine power against weight and ground friction, and it goes with the square root of power. `scale_power()` sets `consumption` to `SPEED_FACTOR²` of the car's (0.8² = 64%), giving 80% of the car's top speed on every ground and fuel. Lowering power instead of adding weight also makes fuel last longer and keeps ramming damage unchanged.
 
 #### Item, recipe and grid
 
@@ -140,7 +142,7 @@ Every buggy is stored in `storage.buggies`, keyed by the registration number ret
 
 #### Radar on wheels: `chart_all()`
 
-At each chart interval, the script loops through every tracked buggy and calls:
+At each chart interval, the script loops through every tracked buggy. Buggies with nobody in them (`occupied()` checks `get_driver()` and `get_passenger()`) are skipped. For the rest it calls:
 
 ```lua
 force.chart(surface, {{x - r, y - r}, {x + r, y + r}})
@@ -163,7 +165,7 @@ The check only happens on chart ticks, so the effective gap is the setting round
 
 #### Hidden alternator: `power_all()`
 
-Every 10 ticks, each buggy gets an energy budget of:
+Every 10 ticks, each **occupied** buggy gets an energy budget of:
 
 ```
 1,000,000 W × 10 ticks / 60 ticks/s ≈ 166.7 kJ
@@ -176,7 +178,7 @@ That budget goes into the grid in two passes:
 
 With this order, active equipment is fed first and batteries only charge from spare capacity. Any energy that doesn't fit is discarded; nothing carries over between ticks.
 
-The alternator doesn't use the car's fuel and runs whether or not anyone is driving. A parked buggy with personal lasers works as a powered defensive post.
+The alternator doesn't use the car's fuel, but it only runs while the buggy is occupied *(0.1.3)*. A parked buggy's equipment runs on whatever its batteries hold, so it can't be used as a free power source or a permanent laser turret.
 
 #### Tick scheduling
 
@@ -237,7 +239,7 @@ The three sheets must use identical frame order and direction count (64). The bo
 Factorio expects a zip containing one folder named `<name>_<version>` or just `<name>`, with `info.json` inside:
 
 ```
-WePlayObservationBuggy_0.1.2.zip
+WePlayObservationBuggy_0.1.3.zip
 └── WePlayObservationBuggy/
     ├── info.json
     └── ...
@@ -248,6 +250,11 @@ For each release, bump `version` in `info.json` and add an entry at the top of `
 ---
 
 ## Changelog
+
+**0.1.3** (2026-11-12)
+- The radar only charts while someone is driving or riding in the buggy. A parked buggy is no longer a free radar.
+- The built-in alternator only powers the grid while the buggy is occupied.
+- Top speed is 80% of the car's, and fuel lasts longer.
 
 **0.1.2** (2026-11-12)
 - Custom sounds: engine start, running loop and shutdown, hatch open and close, and brake screech.

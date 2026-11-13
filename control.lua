@@ -48,17 +48,26 @@ local function ping(entity)
   end
 end
 
+-- Occupancy ------------------------------------------------------------------
+-- The radar and the alternator only run while someone is driving or riding.
+-- A parked buggy shouldn't act as a free radar or a free power source.
+local function occupied(entity)
+  return entity.get_driver() ~= nil or entity.get_passenger() ~= nil
+end
+
 -- Radar on wheels ----------------------------------------------------------
 local function chart_all()
   local r = settings.global["wp-observation-buggy-chart-radius"].value
   for id, entity in pairs(storage.buggies) do
     if entity.valid then
-      local force = entity.force
-      if force then
-        local p = entity.position
-        force.chart(entity.surface, {{p.x - r, p.y - r}, {p.x + r, p.y + r}})
+      if occupied(entity) then
+        local force = entity.force
+        if force then
+          local p = entity.position
+          force.chart(entity.surface, {{p.x - r, p.y - r}, {p.x + r, p.y + r}})
+        end
+        ping(entity)
       end
-      ping(entity)
     else
       storage.buggies[id] = nil
     end
@@ -66,8 +75,9 @@ local function chart_all()
 end
 
 -- Hidden alternator --------------------------------------------------------
--- Tops up equipment buffers with up to 1 MW worth of energy. Shields, lasers,
--- roboports etc. are filled first; batteries get whatever is left.
+-- Tops up equipment buffers with up to 1 MW worth of energy while the buggy
+-- is occupied. Shields, lasers, roboports etc. are filled first; batteries get
+-- whatever is left. A parked buggy runs on what its batteries hold.
 local function give(equipment, budget)
   local need = equipment.max_energy - equipment.energy
   if need <= 0 then return budget end
@@ -79,7 +89,7 @@ end
 local function power_all()
   local budget_per_buggy = ALTERNATOR_WATTS * POWER_INTERVAL / 60  -- joules
   for _, entity in pairs(storage.buggies) do
-    local grid = entity.valid and entity.grid
+    local grid = entity.valid and occupied(entity) and entity.grid
     if grid then
       local budget = budget_per_buggy
       local batteries = {}

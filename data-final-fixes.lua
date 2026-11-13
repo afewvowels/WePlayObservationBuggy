@@ -41,7 +41,6 @@ end
 -- Dust tinted to the tile (apply_tile_tint) matched the ground so closely it
 -- vanished, so any effect that uses it gets a fixed light tan instead.
 local DUST_TINT = {r = 0.95, g = 0.88, b = 0.74, a = 1}
-local retinted = 0
 
 local function untint(t)
   if type(t) ~= "table" then return end
@@ -49,7 +48,6 @@ local function untint(t)
   if t.apply_tile_tint then
     t.apply_tile_tint = nil
     t.tint = DUST_TINT
-    retinted = retinted + 1
   end
   for _, v in ipairs(kids) do untint(v) end
 end
@@ -116,6 +114,4 @@ if buggy then
 
   untint(triggers)
   move_to_wheels(triggers)
-  log("[WePlayObservationBuggy] wheel dust: " .. #triggers
-    .. " tile entries, " .. retinted .. " tile-tinted effects set to fixed tan")
 end

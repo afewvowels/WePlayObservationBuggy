@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.3
+Date: 2026-11-12
+  Balancing:
+    - The radar only charts while someone is driving or riding in the buggy. A parked buggy is no longer a free radar.
+    - The built-in alternator only powers the equipment grid while the buggy is occupied. Parked, its equipment runs on what the batteries hold.
+    - Top speed is 80% of the car's, on every ground and fuel. The engine uses about two thirds of the car's power, so fuel lasts longer too.
+---------------------------------------------------------------------------------------------------
 Version: 0.1.2
 Date: 2026-11-12
   Features:
@@ -6,7 +13,7 @@ Date: 2026-11-12
     - Radar ping plays to the driver and passenger as the buggy charts. Per-player setting: seconds between pings, 0 = off.
   Changes:
     - Wheel dust is back, coming from the buggy's own rear wheels instead of under the body. Each ground type keeps its own dust colour.
-    - Ground the car has no dust for (modded tiles such as Alien Biomes', paved floors) now gets light tan dust.
+    - Ground with no dust of its own (paved floors, modded tiles without their own dust) now gets light tan dust.
     - Removed the exhaust smoke. It came from the middle of the body and drew over the sphere.
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.1

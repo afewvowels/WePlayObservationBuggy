@@ -96,6 +96,23 @@ buggy.drawing_box_vertical_extension = 2.5
 
 buggy.max_health = 600
 buggy.inventory_size = 40
+
+-- Top speed: cars have no speed setting; top speed comes from engine power
+-- against weight and ground friction, and goes with the square root of power.
+-- So SPEED_FACTOR^2 of the car's power gives SPEED_FACTOR of its top speed on
+-- every tile and fuel. Cutting power (not adding weight) also stretches fuel.
+local SPEED_FACTOR = 0.8
+local PREFIX = {[""] = 1, k = 1e3, M = 1e6, G = 1e9}
+
+local function scale_power(energy, factor)
+  if type(energy) ~= "string" then return energy end
+  local num, prefix = string.match(energy, "^([%d%.]+)%s*(%a?)W$")
+  local mult = prefix and PREFIX[prefix]
+  if not (num and mult) then return energy end
+  return string.format("%.0fW", tonumber(num) * mult * factor)
+end
+
+buggy.consumption = scale_power(buggy.consumption, SPEED_FACTOR ^ 2)
 buggy.equipment_grid = NAME .. "-grid"
 
 -- Item
